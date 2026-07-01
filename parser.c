@@ -32,27 +32,15 @@ static void atualizarColunas(Variaveis *vars);
 
 static int encontrarIgual(const char texto[]);
 
-static int lerNumero(const char texto[],
-                     int *indice,
-                     double *numero);
+static int lerNumero(const char texto[],int *indice,double *numero);
 
-static int interpretarLadoEsquerdo(const char texto[],
-                                   int fim,
-                                   const Variaveis *vars,
-                                   Equacao *eq);
+static int interpretarLadoEsquerdo(const char texto[],int fim,const Variaveis *vars,Equacao *eq);
 
-static int interpretarLadoDireito(const char texto[],
-                                  int inicio,
-                                  Equacao *eq);
+static int interpretarLadoDireito(const char texto[],int inicio,Equacao *eq);
 
-static int interpretarEquacao(const char texto[],
-                              const Variaveis *vars,
-                              Equacao *eq);
+static int interpretarEquacao(const char texto[],const Variaveis *vars, Equacao *eq);
 
-static void preencherLinha(const Equacao *eq,
-                           Matriz *matriz,
-                           int linha,
-                           int quantidadeVariaveis);
+static void preencherLinha(const Equacao *eq, Matriz *matriz,int linha,int quantidadeVariaveis);
 
 
 /*
@@ -247,9 +235,7 @@ int montarSistema(const SistemaEntrada *entrada,
     */
     for(int i = 0; i < entrada->quantidade; i++)
     {
-        if(!interpretarEquacao(entrada->texto[i],
-                               vars,
-                               &equacoes[i]))
+        if(!interpretarEquacao(entrada->texto[i],vars,&equacoes[i]))
         {
             printf("\nErro: a equacao %d possui sintaxe invalida.\n", i + 1);
             return 0;
@@ -260,16 +246,11 @@ int montarSistema(const SistemaEntrada *entrada,
         Se chegou aqui, todas as equacoes sao validas.
         Agora sim podemos criar a matriz aumentada.
     */
-    inicializarMatriz(matriz,
-                      entrada->quantidade,
-                      vars->quantidade + 1);
+    inicializarMatriz(matriz,entrada->quantidade,vars->quantidade + 1);
 
     for(int i = 0; i < entrada->quantidade; i++)
     {
-        preencherLinha(&equacoes[i],
-                       matriz,
-                       i,
-                       vars->quantidade);
+        preencherLinha(&equacoes[i],matriz,i,vars->quantidade);
     }
 
     return 1;
@@ -660,10 +641,7 @@ Gera:
 ==========================================================
 */
 
-static int interpretarLadoEsquerdo(const char texto[],
-                                   int fim,
-                                   const Variaveis *vars,
-                                   Equacao *eq)
+static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *vars, Equacao *eq)
 {
     int i = 0;
 
@@ -893,10 +871,7 @@ static int interpretarEquacao(const char texto[],
     return 0;
 }
 
-if(!interpretarLadoEsquerdo(copia,
-                            posIgual,
-                            vars,
-                            eq))
+if(!interpretarLadoEsquerdo(copia,posIgual,vars, eq))
 {
     return 0;
 }
@@ -919,10 +894,7 @@ Matriz:
 ==========================================================
 */
 
-static void preencherLinha(const Equacao *eq,
-                           Matriz *matriz,
-                           int linha,
-                           int quantidadeVariaveis)
+static void preencherLinha(const Equacao *eq,Matriz *matriz,int linha,int quantidadeVariaveis)
 {
     for(int coluna = 0; coluna < quantidadeVariaveis; coluna++)
     {

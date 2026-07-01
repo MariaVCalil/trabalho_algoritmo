@@ -42,14 +42,11 @@ typedef struct
 void lerSistema(SistemaEntrada *entrada);
 
 
-int identificarVariaveis(const SistemaEntrada *entrada,
-                         Variaveis *vars);
+int identificarVariaveis(const SistemaEntrada *entrada,Variaveis *vars);
 
 
 
-int montarSistema(const SistemaEntrada *entrada,
-                  const Variaveis *vars,
-                  Matriz *matriz);
+int montarSistema(const SistemaEntrada *entrada,const Variaveis *vars, Matriz *matriz);
 
 
 void imprimirVariaveis(const Variaveis *vars);

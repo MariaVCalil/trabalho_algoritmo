@@ -2,44 +2,38 @@
 #define MATRIZ_H
 
 #include "config.h"
+// apenas define a estrutura e funções basicas
+/*
+    Estrutura usada para representar matrizes no projeto.
 
-/*Estrutura da matriz*/
+    linhas  -> quantidade de linhas usadas
+    colunas -> quantidade de colunas usadas
+    dados   -> valores armazenados na matriz
+*/
 
 typedef struct
 {
     int linhas;
     int colunas;
-
     double dados[MAX_LINHAS][MAX_COLUNAS];
 
 } Matriz;
 
-/*
-Inicialização*/
+/* Inicializacao */
 
-void inicializarMatriz(Matriz *m,
-                       int linhas,
-                       int colunas);
+void inicializarMatriz(Matriz *m, int linhas, int colunas);
 
-/*Operações elementares*/
+/* Operacoes elementares de linha */
 
-void trocarLinhas(Matriz *m,
-                  int linha1,
-                  int linha2);
+void trocarLinhas(Matriz *m, int linha1, int linha2);
 
-void multiplicarLinha(Matriz *m,
-                      int linha,
-                      double escalar);
+void multiplicarLinha(Matriz *m, int linha, double escalar);
 
-void adicionarMultiplo(Matriz *m,
-                       int destino,
-                       int origem,
-                       double fator);
+void adicionarMultiplo(Matriz *m, int destino, int origem, double fator);
 
-/*Utilidades*/
+/* Utilidades */
 
-void copiarMatriz(const Matriz *origem,
-                  Matriz *destino);
+void copiarMatriz(const Matriz *origem, Matriz *destino);
 
 void imprimirMatriz(const Matriz *m);
 

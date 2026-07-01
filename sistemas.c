@@ -8,20 +8,13 @@ Funcoes privadas
 ==========================================================
 */
 
-static void montarMatrizCoeficientes(const Matriz *aumentada,
-                                     Matriz *coeficientes);
+static void montarMatrizCoeficientes(const Matriz *aumentada,Matriz *coeficientes);
 
-static void reduzirGaussJordan(Matriz *m,
-                               int quantidadeVariaveis);
+static void reduzirGaussJordan(Matriz *m,int quantidadeVariaveis);
 
-static int primeiraColunaNaoZero(const Matriz *m,
-                                 int linha,
-                                 int quantidadeVariaveis);
+static int primeiraColunaNaoZero(const Matriz *m,int linha,int quantidadeVariaveis);
 
-static void identificarPivos(const Matriz *m,
-                             int quantidadeVariaveis,
-                             int pivoPorLinha[MAX_LINHAS],
-                             int colunaEhPivo[MAX_VARIAVEIS]);
+static void identificarPivos(const Matriz *m,int quantidadeVariaveis,int pivoPorLinha[MAX_LINHAS], int colunaEhPivo[MAX_VARIAVEIS]);
 
 static void imprimirSolucaoSPD(const Matriz *reduzida,
                                const Variaveis *vars);
@@ -185,8 +178,7 @@ Depois aplica Gauss-Jordan para imprimir a solucao.
 ==========================================================
 */
 
-void resolverSistema(const Matriz *aumentada,
-                     const Variaveis *vars)
+void resolverSistema(const Matriz *aumentada, const Variaveis *vars)
 {
     TipoSistema tipo;
     Matriz reduzida;
@@ -257,14 +249,11 @@ Exemplo:
 ==========================================================
 */
 
-static void montarMatrizCoeficientes(const Matriz *aumentada,
-                                     Matriz *coeficientes)
+static void montarMatrizCoeficientes(const Matriz *aumentada, Matriz *coeficientes)
 {
     int numeroVariaveis = aumentada->colunas - 1;
 
-    inicializarMatriz(coeficientes,
-                      aumentada->linhas,
-                      numeroVariaveis);
+    inicializarMatriz(coeficientes,aumentada->linhas,numeroVariaveis);
 
     for(int i = 0; i < aumentada->linhas; i++)
     {
@@ -288,8 +277,7 @@ Isso facilita imprimir a solucao.
 ==========================================================
 */
 
-static void reduzirGaussJordan(Matriz *m,
-                               int quantidadeVariaveis)
+static void reduzirGaussJordan(Matriz *m,int quantidadeVariaveis)
 {
     int linhaPivo = 0;
 
@@ -351,9 +339,7 @@ Encontra a primeira coluna nao nula de uma linha.
 ==========================================================
 */
 
-static int primeiraColunaNaoZero(const Matriz *m,
-                                 int linha,
-                                 int quantidadeVariaveis)
+static int primeiraColunaNaoZero(const Matriz *m,int linha,int quantidadeVariaveis)
 {
     for(int coluna = 0; coluna < quantidadeVariaveis; coluna++)
     {
@@ -377,10 +363,7 @@ Isso e importante para SPI:
 ==========================================================
 */
 
-static void identificarPivos(const Matriz *m,
-                             int quantidadeVariaveis,
-                             int pivoPorLinha[MAX_LINHAS],
-                             int colunaEhPivo[MAX_VARIAVEIS])
+static void identificarPivos(const Matriz *m, int quantidadeVariaveis,int pivoPorLinha[MAX_LINHAS], int colunaEhPivo[MAX_VARIAVEIS])
 {
     for(int i = 0; i < MAX_LINHAS; i++)
     {
@@ -420,10 +403,7 @@ static void imprimirSolucaoSPD(const Matriz *reduzida,
     int pivoPorLinha[MAX_LINHAS];
     int colunaEhPivo[MAX_VARIAVEIS];
 
-    identificarPivos(reduzida,
-                     quantidadeVariaveis,
-                     pivoPorLinha,
-                     colunaEhPivo);
+    identificarPivos(reduzida,quantidadeVariaveis,pivoPorLinha,colunaEhPivo);
 
     printf("\nSolucao unica:\n");
 
@@ -442,9 +422,7 @@ static void imprimirSolucaoSPD(const Matriz *reduzida,
 
         if(linhaEncontrada != -1)
         {
-            printf("%c = %.4lf\n",
-                   vars->lista[coluna].nome,
-                   reduzida->dados[linhaEncontrada][quantidadeVariaveis]);
+            printf("%c = %.4lf\n",vars->lista[coluna].nome,reduzida->dados[linhaEncontrada][quantidadeVariaveis]);
         }
     }
 }
@@ -470,10 +448,7 @@ static void imprimirSolucaoSPI(const Matriz *reduzida,
     int pivoPorLinha[MAX_LINHAS];
     int colunaEhPivo[MAX_VARIAVEIS];
 
-    identificarPivos(reduzida,
-                     quantidadeVariaveis,
-                     pivoPorLinha,
-                     colunaEhPivo);
+    identificarPivos(reduzida,quantidadeVariaveis,pivoPorLinha,colunaEhPivo);
 
     printf("\nSolucao geral:\n");
 
