@@ -6,26 +6,14 @@
 #include "matriz.h"
 #include "config.h"
 
-/*
-==========================================================
-Funcoes privadas
-==========================================================
-*/
+/* Funcoes privadas */
 
 static void removerQuebraLinha(char texto[]);
 static void removerEspacos(char texto[]);
-
-static int ehMatrizLambdaIdentidade(const Matriz *matriz,
-                                    double lambda);
-
+static int matrizLambdaIdentidade(const Matriz *matriz, double lambda);
 static void pausarDiagonal(void);
 
-
-/*
-==========================================================
-Funcao principal da Questao 5.
-==========================================================
-*/
+/* Executa a questao 5 */
 
 void executarDiagonalizacao(void)
 {
@@ -74,10 +62,7 @@ void executarDiagonalizacao(void)
         return;
     }
 
-    if(!calcularAutovalores2x2(&matriz,
-                               autovalores,
-                               multiplicidades,
-                               &quantidadeAutovalores))
+    if(!calcularAutovalores2x2(&matriz, autovalores, multiplicidades, &quantidadeAutovalores))
     {
         printf("\nResultado:\n");
         printf("O operador nao e diagonalizavel em R.\n");
@@ -87,7 +72,7 @@ void executarDiagonalizacao(void)
         return;
     }
 
-    if(!ehDiagonalizavelR2(&matriz))
+    if(!diagonalizavelR2(&matriz))
     {
         printf("\nResultado:\n");
         printf("O operador nao e diagonalizavel em R.\n");
@@ -108,29 +93,15 @@ void executarDiagonalizacao(void)
     pausarDiagonal();
 }
 
+/* Verifica se a matriz 2x2 e diagonalizavel em R */
 
-/*
-==========================================================
-Verifica se uma matriz 2x2 e diagonalizavel em R.
-
-Regras:
-    - Se nao tem autovalores reais, nao e diagonalizavel em R.
-    - Se tem dois autovalores reais distintos, e diagonalizavel.
-    - Se tem um autovalor repetido, so e diagonalizavel se
-      A = lambda I.
-==========================================================
-*/
-
-int ehDiagonalizavelR2(const Matriz *matriz)
+int diagonalizavelR2(const Matriz *matriz)
 {
     double autovalores[2];
     int multiplicidades[2];
     int quantidadeAutovalores = 0;
 
-    if(!calcularAutovalores2x2(matriz,
-                               autovalores,
-                               multiplicidades,
-                               &quantidadeAutovalores))
+    if(!calcularAutovalores2x2(matriz, autovalores, multiplicidades, &quantidadeAutovalores))
     {
         return 0;
     }
@@ -142,29 +113,15 @@ int ehDiagonalizavelR2(const Matriz *matriz)
 
     if(quantidadeAutovalores == 1 && multiplicidades[0] == 2)
     {
-        return ehMatrizLambdaIdentidade(matriz, autovalores[0]);
+        return matrizLambdaIdentidade(matriz, autovalores[0]);
     }
 
     return 0;
 }
 
+/* Monta a matriz diagonal D */
 
-/*
-==========================================================
-Monta a matriz diagonal D.
-
-Se os autovalores forem distintos:
-    D = [lambda1   0    ]
-        [   0    lambda2]
-
-Se o autovalor for repetido e a matriz for lambda I:
-    D = [lambda  0]
-        [0  lambda]
-==========================================================
-*/
-
-int montarMatrizDiagonal(const Matriz *matriz,
-                         Matriz *diagonal)
+int montarMatrizDiagonal(const Matriz *matriz, Matriz *diagonal)
 {
     double autovalores[2];
     int multiplicidades[2];
@@ -172,10 +129,7 @@ int montarMatrizDiagonal(const Matriz *matriz,
 
     inicializarMatriz(diagonal, 2, 2);
 
-    if(!calcularAutovalores2x2(matriz,
-                               autovalores,
-                               multiplicidades,
-                               &quantidadeAutovalores))
+    if(!calcularAutovalores2x2(matriz, autovalores, multiplicidades, &quantidadeAutovalores))
     {
         return 0;
     }
@@ -184,36 +138,22 @@ int montarMatrizDiagonal(const Matriz *matriz,
     {
         diagonal->dados[0][0] = autovalores[0];
         diagonal->dados[1][1] = autovalores[1];
-
         return 1;
     }
 
-    if(quantidadeAutovalores == 1 &&
-       multiplicidades[0] == 2 &&
-       ehMatrizLambdaIdentidade(matriz, autovalores[0]))
+    if(quantidadeAutovalores == 1 && multiplicidades[0] == 2 && matrizLambdaIdentidade(matriz, autovalores[0]))
     {
         diagonal->dados[0][0] = autovalores[0];
         diagonal->dados[1][1] = autovalores[0];
-
         return 1;
     }
 
     return 0;
 }
 
+/* Verifica se A = lambda I */
 
-/*
-==========================================================
-Verifica se A = lambda I.
-
-Exemplo:
-    [3 0]
-    [0 3]
-==========================================================
-*/
-
-static int ehMatrizLambdaIdentidade(const Matriz *matriz,
-                                    double lambda)
+static int matrizLambdaIdentidade(const Matriz *matriz, double lambda)
 {
     if(!ehZero(matriz->dados[0][0] - lambda))
     {
@@ -238,12 +178,7 @@ static int ehMatrizLambdaIdentidade(const Matriz *matriz,
     return 1;
 }
 
-
-/*
-==========================================================
-Remove o \n do fgets.
-==========================================================
-*/
+/* Remove o \n do fgets */
 
 static void removerQuebraLinha(char texto[])
 {
@@ -257,12 +192,7 @@ static void removerQuebraLinha(char texto[])
     }
 }
 
-
-/*
-==========================================================
-Remove espacos e tabulacoes.
-==========================================================
-*/
+/* Remove espacos e tabulacoes */
 
 static void removerEspacos(char texto[])
 {
@@ -283,12 +213,7 @@ static void removerEspacos(char texto[])
     texto[j] = '\0';
 }
 
-
-/*
-==========================================================
-Pausa.
-==========================================================
-*/
+/* Pausa a tela */
 
 static void pausarDiagonal(void)
 {
