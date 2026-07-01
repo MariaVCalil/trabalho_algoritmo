@@ -3,22 +3,15 @@
 
 #include "matriz.h"
 
-/*
-==========================================================
-Questao 5 - Diagonalizacao em R
-
-O programa:
+/* Questao 5 - Diagonalizacao em R 
     - le um operador T: R2 -> R2
     - verifica se e diagonalizavel em R
-    - se for, apresenta a matriz diagonal D
-==========================================================
-*/
+    - se for, apresenta a matriz diagonal D */
 
 void executarDiagonalizacao(void);
 
-int ehDiagonalizavelR2(const Matriz *matriz);
+int diagonalizavelR2(const Matriz *matriz);
 
-int montarMatrizDiagonal(const Matriz *matriz,
-                         Matriz *diagonal);
+int montarMatrizDiagonal(const Matriz *matriz, Matriz *diagonal);
 
 #endif
