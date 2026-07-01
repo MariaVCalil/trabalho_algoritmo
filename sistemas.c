@@ -1,57 +1,26 @@
 #include <stdio.h>
-
 #include "sistemas.h"
 
-/*
-==========================================================
-Funcoes privadas
-==========================================================
-*/
+/* Funcoes privadas */
 
-static void montarMatrizCoeficientes(const Matriz *aumentada,Matriz *coeficientes);
-
-static void reduzirGaussJordan(Matriz *m,int quantidadeVariaveis);
-
-static int primeiraColunaNaoZero(const Matriz *m,int linha,int quantidadeVariaveis);
-
-static void identificarPivos(const Matriz *m,int quantidadeVariaveis,int pivoPorLinha[MAX_LINHAS], int colunaEhPivo[MAX_VARIAVEIS]);
-
-static void imprimirSolucaoSPD(const Matriz *reduzida,
-                               const Variaveis *vars);
-
-static void imprimirSolucaoSPI(const Matriz *reduzida,
-                               const Variaveis *vars);
-
+static void montarMatrizCoeficientes(const Matriz *aumentada, Matriz *coeficientes);
+static int buscarLinhaPivo(const Matriz *m, int linhaInicial, int coluna);
+static void reduzirGaussJordan(Matriz *m, int quantidadeVariaveis);
+static int primeiraColunaNaoZero(const Matriz *m, int linha, int quantidadeVariaveis);
+static void identificarPivos(const Matriz *m, int quantidadeVariaveis, int pivoPorLinha[MAX_LINHAS], int colunaEhPivo[MAX_VARIAVEIS]);
+static void imprimirSolucaoSPD(const Matriz *reduzida, const Variaveis *vars);
+static void imprimirSolucaoSPI(const Matriz *reduzida, const Variaveis *vars);
 static void zerarValoresPequenos(Matriz *m);
 
-
-/*
-==========================================================
-Escalona uma matriz.
-
-Essa funcao e generica, ou seja, pode ser usada tanto para
-matriz de coeficientes A quanto para matriz aumentada A|b.
-==========================================================
-*/
+/* Escalona uma matriz para calcular o posto */
 
 void escalonarMatriz(Matriz *m)
 {
     int linhaPivo = 0;
 
-    for(int coluna = 0;
-        coluna < m->colunas && linhaPivo < m->linhas;
-        coluna++)
+    for(int coluna = 0; coluna < m->colunas && linhaPivo < m->linhas; coluna++)
     {
-        int melhorLinha = -1;
-
-        for(int linha = linhaPivo; linha < m->linhas; linha++)
-        {
-            if(!ehZero(m->dados[linha][coluna]))
-            {
-                melhorLinha = linha;
-                break;
-            }
-        }
+        int melhorLinha = buscarLinhaPivo(m, linhaPivo, coluna);
 
         if(melhorLinha == -1)
         {
@@ -65,10 +34,7 @@ void escalonarMatriz(Matriz *m)
 
         double pivo = m->dados[linhaPivo][coluna];
 
-        if(!ehZero(pivo))
-        {
-            multiplicarLinha(m, linhaPivo, 1.0 / pivo);
-        }
+        multiplicarLinha(m, linhaPivo, 1.0 / pivo);
 
         for(int linha = linhaPivo + 1; linha < m->linhas; linha++)
         {
@@ -86,14 +52,7 @@ void escalonarMatriz(Matriz *m)
     zerarValoresPequenos(m);
 }
 
-
-/*
-==========================================================
-Calcula o posto de uma matriz.
-
-Posto = quantidade de linhas nao nulas apos escalonamento.
-==========================================================
-*/
+/* Calcula o posto pela quantidade de linhas nao nulas */
 
 int calcularPosto(const Matriz *m)
 {
@@ -101,7 +60,6 @@ int calcularPosto(const Matriz *m)
     int posto = 0;
 
     copiarMatriz(m, &copia);
-
     escalonarMatriz(&copia);
 
     for(int i = 0; i < copia.linhas; i++)
@@ -126,23 +84,7 @@ int calcularPosto(const Matriz *m)
     return posto;
 }
 
-
-/*
-==========================================================
-Classifica o sistema.
-
-Teoria usada:
-
-Se posto(A) != posto(A|b)
-    SI
-
-Se posto(A) == posto(A|b) == numero de variaveis
-    SPD
-
-Se posto(A) == posto(A|b) < numero de variaveis
-    SPI
-==========================================================
-*/
+/* Classifica o sistema usando posto(A) e posto(A|b) */
 
 TipoSistema classificarSistema(const Matriz *aumentada)
 {
@@ -168,15 +110,7 @@ TipoSistema classificarSistema(const Matriz *aumentada)
     return SISTEMA_SPI;
 }
 
-
-/*
-==========================================================
-Resolve o sistema.
-
-Primeiro classifica.
-Depois aplica Gauss-Jordan para imprimir a solucao.
-==========================================================
-*/
+/* Resolve o sistema e imprime o resultado */
 
 void resolverSistema(const Matriz *aumentada, const Variaveis *vars)
 {
@@ -194,11 +128,7 @@ void resolverSistema(const Matriz *aumentada, const Variaveis *vars)
     }
 
     copiarMatriz(aumentada, &reduzida);
-
     reduzirGaussJordan(&reduzida, vars->quantidade);
-
-    printf("\nMatriz reduzida:\n");
-    imprimirMatriz(&reduzida);
 
     if(tipo == SISTEMA_SPD)
     {
@@ -210,50 +140,35 @@ void resolverSistema(const Matriz *aumentada, const Variaveis *vars)
     }
 }
 
-
-/*
-==========================================================
-Imprime o tipo do sistema.
-==========================================================
-*/
+/* Imprime a classificacao do sistema */
 
 void imprimirTipoSistema(TipoSistema tipo)
 {
     printf("\nClassificacao do sistema:\n");
 
-    if(tipo == SISTEMA_SI)
+    switch(tipo)
     {
-        printf("SI - Sistema Impossivel\n");
-    }
-    else if(tipo == SISTEMA_SPI)
-    {
-        printf("SPI - Sistema Possivel e Indeterminado\n");
-    }
-    else
-    {
-        printf("SPD - Sistema Possivel e Determinado\n");
+        case SISTEMA_SI:
+            printf("SI - Sistema Impossivel\n");
+            break;
+
+        case SISTEMA_SPI:
+            printf("SPI - Sistema Possivel e Indeterminado\n");
+            break;
+
+        case SISTEMA_SPD:
+            printf("SPD - Sistema Possivel e Determinado\n");
+            break;
     }
 }
 
-
-/*
-==========================================================
-Monta a matriz A a partir da matriz aumentada A|b.
-
-Exemplo:
-    A|b:
-        1 2 5 | 10
-
-    A:
-        1 2 5
-==========================================================
-*/
+/* Monta a matriz de coeficientes A a partir da matriz aumentada A|b */
 
 static void montarMatrizCoeficientes(const Matriz *aumentada, Matriz *coeficientes)
 {
     int numeroVariaveis = aumentada->colunas - 1;
 
-    inicializarMatriz(coeficientes,aumentada->linhas,numeroVariaveis);
+    inicializarMatriz(coeficientes, aumentada->linhas, numeroVariaveis);
 
     for(int i = 0; i < aumentada->linhas; i++)
     {
@@ -264,37 +179,30 @@ static void montarMatrizCoeficientes(const Matriz *aumentada, Matriz *coeficient
     }
 }
 
+/* Procura uma linha que tenha valor nao nulo na coluna escolhida */
 
-/*
-==========================================================
-Reduz a matriz pelo metodo de Gauss-Jordan.
+static int buscarLinhaPivo(const Matriz *m, int linhaInicial, int coluna)
+{
+    for(int linha = linhaInicial; linha < m->linhas; linha++)
+    {
+        if(!ehZero(m->dados[linha][coluna]))
+        {
+            return linha;
+        }
+    }
 
-Diferenca para Gauss comum:
-    Gauss apenas zera abaixo do pivo.
-    Gauss-Jordan zera abaixo e acima do pivo.
+    return -1;
+}
 
-Isso facilita imprimir a solucao.
-==========================================================
-*/
+/* Reduz a matriz por Gauss-Jordan para encontrar a solucao */
 
-static void reduzirGaussJordan(Matriz *m,int quantidadeVariaveis)
+static void reduzirGaussJordan(Matriz *m, int quantidadeVariaveis)
 {
     int linhaPivo = 0;
 
-    for(int coluna = 0;
-        coluna < quantidadeVariaveis && linhaPivo < m->linhas;
-        coluna++)
+    for(int coluna = 0; coluna < quantidadeVariaveis && linhaPivo < m->linhas; coluna++)
     {
-        int melhorLinha = -1;
-
-        for(int linha = linhaPivo; linha < m->linhas; linha++)
-        {
-            if(!ehZero(m->dados[linha][coluna]))
-            {
-                melhorLinha = linha;
-                break;
-            }
-        }
+        int melhorLinha = buscarLinhaPivo(m, linhaPivo, coluna);
 
         if(melhorLinha == -1)
         {
@@ -308,10 +216,7 @@ static void reduzirGaussJordan(Matriz *m,int quantidadeVariaveis)
 
         double pivo = m->dados[linhaPivo][coluna];
 
-        if(!ehZero(pivo))
-        {
-            multiplicarLinha(m, linhaPivo, 1.0 / pivo);
-        }
+        multiplicarLinha(m, linhaPivo, 1.0 / pivo);
 
         for(int linha = 0; linha < m->linhas; linha++)
         {
@@ -332,14 +237,9 @@ static void reduzirGaussJordan(Matriz *m,int quantidadeVariaveis)
     zerarValoresPequenos(m);
 }
 
+/* Retorna a primeira coluna nao nula de uma linha */
 
-/*
-==========================================================
-Encontra a primeira coluna nao nula de uma linha.
-==========================================================
-*/
-
-static int primeiraColunaNaoZero(const Matriz *m,int linha,int quantidadeVariaveis)
+static int primeiraColunaNaoZero(const Matriz *m, int linha, int quantidadeVariaveis)
 {
     for(int coluna = 0; coluna < quantidadeVariaveis; coluna++)
     {
@@ -352,18 +252,9 @@ static int primeiraColunaNaoZero(const Matriz *m,int linha,int quantidadeVariave
     return -1;
 }
 
+/* Identifica variaveis dependentes e livres */
 
-/*
-==========================================================
-Identifica quais colunas possuem pivo.
-
-Isso e importante para SPI:
-    variaveis com pivo  -> dependentes
-    variaveis sem pivo  -> livres
-==========================================================
-*/
-
-static void identificarPivos(const Matriz *m, int quantidadeVariaveis,int pivoPorLinha[MAX_LINHAS], int colunaEhPivo[MAX_VARIAVEIS])
+static void identificarPivos(const Matriz *m, int quantidadeVariaveis, int pivoPorLinha[MAX_LINHAS], int colunaEhPivo[MAX_VARIAVEIS])
 {
     for(int i = 0; i < MAX_LINHAS; i++)
     {
@@ -377,9 +268,7 @@ static void identificarPivos(const Matriz *m, int quantidadeVariaveis,int pivoPo
 
     for(int linha = 0; linha < m->linhas; linha++)
     {
-        int colunaPivo = primeiraColunaNaoZero(m,
-                                               linha,
-                                               quantidadeVariaveis);
+        int colunaPivo = primeiraColunaNaoZero(m, linha, quantidadeVariaveis);
 
         if(colunaPivo != -1)
         {
@@ -389,21 +278,16 @@ static void identificarPivos(const Matriz *m, int quantidadeVariaveis,int pivoPo
     }
 }
 
+/* Imprime a solucao unica do sistema SPD */
 
-/*
-==========================================================
-Imprime solucao unica do sistema SPD.
-==========================================================
-*/
-
-static void imprimirSolucaoSPD(const Matriz *reduzida,
-                               const Variaveis *vars)
+static void imprimirSolucaoSPD(const Matriz *reduzida, const Variaveis *vars)
 {
     int quantidadeVariaveis = vars->quantidade;
+
     int pivoPorLinha[MAX_LINHAS];
     int colunaEhPivo[MAX_VARIAVEIS];
 
-    identificarPivos(reduzida,quantidadeVariaveis,pivoPorLinha,colunaEhPivo);
+    identificarPivos(reduzida, quantidadeVariaveis, pivoPorLinha, colunaEhPivo);
 
     printf("\nSolucao unica:\n");
 
@@ -422,33 +306,23 @@ static void imprimirSolucaoSPD(const Matriz *reduzida,
 
         if(linhaEncontrada != -1)
         {
-            printf("%c = %.4lf\n",vars->lista[coluna].nome,reduzida->dados[linhaEncontrada][quantidadeVariaveis]);
+            printf("%c = %.4lf\n",
+                   vars->lista[coluna].nome,
+                   reduzida->dados[linhaEncontrada][quantidadeVariaveis]);
         }
     }
 }
 
+/* Imprime a solucao geral do sistema SPI */
 
-/*
-==========================================================
-Imprime solucao geral do sistema SPI.
-
-Exemplo:
-    x + y = 4
-
-Pode virar:
-    y = t1
-    x = 4 - 1*t1
-==========================================================
-*/
-static void imprimirSolucaoSPI(const Matriz *reduzida,
-                               const Variaveis *vars)
+static void imprimirSolucaoSPI(const Matriz *reduzida, const Variaveis *vars)
 {
     int quantidadeVariaveis = vars->quantidade;
 
     int pivoPorLinha[MAX_LINHAS];
     int colunaEhPivo[MAX_VARIAVEIS];
 
-    identificarPivos(reduzida,quantidadeVariaveis,pivoPorLinha,colunaEhPivo);
+    identificarPivos(reduzida, quantidadeVariaveis, pivoPorLinha, colunaEhPivo);
 
     printf("\nSolucao geral:\n");
 
@@ -496,8 +370,7 @@ static void imprimirSolucaoSPI(const Matriz *reduzida,
 
                         if(ehZero(absoluto(coeficiente) - 1.0))
                         {
-                            printf("%c",
-                                   vars->lista[coluna].nome);
+                            printf("%c", vars->lista[coluna].nome);
                         }
                         else
                         {
@@ -514,13 +387,7 @@ static void imprimirSolucaoSPI(const Matriz *reduzida,
     }
 }
 
-/*
-==========================================================
-Troca valores muito pequenos por zero.
-
-Isso deixa a matriz impressa mais limpa.
-==========================================================
-*/
+/* Troca valores muito pequenos por zero */
 
 static void zerarValoresPequenos(Matriz *m)
 {
