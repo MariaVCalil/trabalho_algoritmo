@@ -2,105 +2,48 @@
 #include <string.h>
 
 #include "transf_l.h"
-#include "matriz.h"
 #include "sistemas.h"
 #include "config.h"
 
-/*
-==========================================================
-Funcoes privadas
-==========================================================
-*/
+/* Funcoes privadas */
 
 static void removerQuebraLinha(char texto[]);
 static void removerEspacos(char texto[]);
 
-static int ehLetra(char c);
-static int ehDigito(char c);
-static int ehSinal(char c);
+static int caractereLetra(char c);
+static int caractereDigito(char c);
+static int caractereSinal(char c);
 
 static char paraMinusculo(char c);
 
-static int lerNumero(const char texto[],
-                     int *indice,
-                     double *numero);
+static int lerNumeroBasico(const char texto[], int *indice, double *numero);
+static int lerCoeficiente(const char texto[], int *indice, double *numero);
 
-static int indiceVariavel(const char variaveisDominio[],
-                          int dimensaoDominio,
-                          char letra);
+static int indiceVariavel(const char variaveis[], int quantidade, char letra);
 
-static int extrairVariaveisDominio(const char texto[],
-                                   char variaveisDominio[],
-                                   int *dimensaoDominio);
+static int extrairVariaveisDominio(const char texto[], char variaveis[], int *quantidadeVariaveis);
+static int extrairExpressoesResultado(const char texto[], char expressoes[MAX_LINHAS][MAX_TAMANHO], int *quantidadeExpressoes);
 
-static int extrairExpressoesContradominio(
-    const char texto[],
-    char expressoesContradominio[MAX_LINHAS][MAX_TAMANHO],
-    int *dimensaoContradominio
-);
-
-static int interpretarExpressaoContradominio(
-    const char expressao[],
-    const char variaveisDominio[],
-    int dimensaoDominio,
-    double coeficientes[MAX_VARIAVEIS]
-);
-
-static int montarMatrizTransformacao(
-    const char expressoesContradominio[MAX_LINHAS][MAX_TAMANHO],
-    int dimensaoContradominio,
-    const char variaveisDominio[],
-    int dimensaoDominio,
-    Matriz *matriz
-);
-
-static void imprimirVariaveisDominio(const char variaveisDominio[],
-                                     int dimensaoDominio);
-
-static void analisarTransformacao(const Matriz *matriz,
-                                  const char variaveisDominio[],
-                                  int dimensaoDominio,
-                                  int dimensaoContradominio);
+static int interpretarExpressao(const char expressao[], const char variaveis[], int quantidadeVariaveis, double coeficientes[MAX_VARIAVEIS]);
+static int montarMatrizTransformacao(const char texto[], Matriz *matriz);
 
 static void pausarTransformacao(void);
 
-
-/*
-==========================================================
-Funcao principal chamada pelo menu.
-
-Formato esperado:
-    T(x,y)=(y+2x,3x+5y)
-    T(x,y,z)=(z+x-y,3x+y+2z)
-    T(u,v)=(2u-v,v+u,3u)
-
-O programa identifica automaticamente:
-    - dimensao do dominio
-    - dimensao do contradominio
-==========================================================
-*/
+/* Executa a questao 2 */
 
 void executarTransformacaoLinear(void)
 {
     char texto[MAX_TAMANHO];
-
-    char variaveisDominio[MAX_VARIAVEIS];
-    int dimensaoDominio = 0;
-
-    char expressoesContradominio[MAX_LINHAS][MAX_TAMANHO];
-    int dimensaoContradominio = 0;
-
     Matriz matriz;
 
-    printf("\nQUESTAO 2 - TRANSFORMACAO LINEAR\n");
+    printf("\nQUESTAO 2 - TRANSFORMACOES LINEARES\n");
 
     printf("\nDigite a transformacao no formato:\n");
-    printf("T(x,y)=(y+2x,3x+5y)\n");
-    printf("T(u,v)=(2u-v,v+u,3u)\n");
-    printf("T(x,y,z)=(z+x-y,3x+y+2z)\n");
-    printf("T(x,y,z)=(x+y+z,2x+2y+2z,x-y+z)\n");
+    printf("  T(x,y)=(y+2x,3x+5y)\n");
+    printf("  T(x,y,z)=(z+x-y,3x+y+2z)\n");
+    printf("  T(u,v)=(2u-v,v+u,3u)\n");
 
-    printf("\nTransformação: ");
+    printf("\nTransformacao: ");
 
     if(fgets(texto, MAX_TAMANHO, stdin) == NULL)
     {
@@ -119,136 +62,60 @@ void executarTransformacaoLinear(void)
         return;
     }
 
-    if(!extrairVariaveisDominio(texto,
-                                variaveisDominio,
-                                &dimensaoDominio))
+    if(!montarMatrizTransformacao(texto, &matriz))
     {
-        printf("\nErro: nao foi possivel identificar o dominio.\n");
-        printf("Use o formato: T(x,y,z)=(...)\n");
+        printf("\nErro: transformacao invalida.\n");
+        printf("Use o formato T(x,y)=(..., ...) ou T(x,y,z)=(..., ..., ...).\n");
         pausarTransformacao();
         return;
     }
 
-    if(!extrairExpressoesContradominio(texto,
-                                       expressoesContradominio,
-                                       &dimensaoContradominio))
-    {
-        printf("\nErro: nao foi possivel identificar o contradominio.\n");
-        printf("Use o formato: T(x,y)=(..., ...)\n");
-        pausarTransformacao();
-        return;
-    }
-
-    if(!montarMatrizTransformacao(expressoesContradominio,
-                                  dimensaoContradominio,
-                                  variaveisDominio,
-                                  dimensaoDominio,
-                                  &matriz))
-    {
-        printf("\nErro: a transformacao digitada nao e linear ou possui sintaxe invalida.\n");
-        printf("Use apenas combinacoes lineares, como: 2x-y+z\n");
-        pausarTransformacao();
-        return;
-    }
-
-    printf("\nTransformacao analisada:\n");
-    printf("%s\n", texto);
-
-    imprimirVariaveisDominio(variaveisDominio,
-                             dimensaoDominio);
-
-    printf("\nMatriz associada:\n");
-    imprimirMatriz(&matriz);
-
-    analisarTransformacao(&matriz,
-                          variaveisDominio,
-                          dimensaoDominio,
-                          dimensaoContradominio);
+    printf("\nResultado:\n");
+    printf("Dimensao do nucleo: %d\n", dimensaoNucleo(&matriz));
+    printf("Dimensao da imagem: %d\n", dimensaoImagem(&matriz));
+    printf("Injetora: %s\n", transformacaoInjetiva(&matriz) ? "sim" : "nao");
+    printf("Sobrejetora: %s\n", transformacaoSobrejetiva(&matriz) ? "sim" : "nao");
+    printf("Bijetora: %s\n", transformacaoBijetiva(&matriz) ? "sim" : "nao");
 
     pausarTransformacao();
 }
 
-
-/*
-==========================================================
-Dimensao da imagem.
-
-Teoria:
-    dim(Im T) = posto da matriz
-==========================================================
-*/
+/* Dimensao da imagem = posto da matriz */
 
 int dimensaoImagem(const Matriz *matriz)
 {
     return calcularPosto(matriz);
 }
 
-
-/*
-==========================================================
-Dimensao do nucleo.
-
-Teoria:
-    dim(Nuc T) = dimensao do dominio - posto
-
-A dimensao do dominio corresponde ao numero de colunas
-da matriz.
-==========================================================
-*/
+/* Dimensao do nucleo = dimensao do dominio - posto */
 
 int dimensaoNucleo(const Matriz *matriz)
 {
-    int posto = calcularPosto(matriz);
-
-    return matriz->colunas - posto;
+    return matriz->colunas - calcularPosto(matriz);
 }
 
+/* Injetora quando o nucleo tem dimensao zero */
 
-/*
-==========================================================
-Injetiva se dim(Nuc T) = 0
-==========================================================
-*/
-
-int ehTransformacaoInjetiva(const Matriz *matriz)
+int transformacaoInjetiva(const Matriz *matriz)
 {
     return dimensaoNucleo(matriz) == 0;
 }
 
+/* Sobrejetora quando a imagem tem a dimensao do contradominio */
 
-/*
-==========================================================
-Sobrejetiva se dim(Im T) = dimensao do contradominio
-
-A dimensao do contradominio corresponde ao numero de
-linhas da matriz.
-==========================================================
-*/
-
-int ehTransformacaoSobrejetiva(const Matriz *matriz)
+int transformacaoSobrejetiva(const Matriz *matriz)
 {
     return dimensaoImagem(matriz) == matriz->linhas;
 }
 
+/* Bijetora quando e injetora e sobrejetora */
 
-/*
-==========================================================
-Bijetiva se for injetiva e sobrejetiva.
-==========================================================
-*/
-
-int ehTransformacaoBijetiva(const Matriz *matriz)
+int transformacaoBijetiva(const Matriz *matriz)
 {
-    return ehTransformacaoInjetiva(matriz) &&
-           ehTransformacaoSobrejetiva(matriz);
+    return transformacaoInjetiva(matriz) && transformacaoSobrejetiva(matriz);
 }
 
-
-/*
-==========================================================
-Remove o \n deixado pelo fgets.
-==========================================================
-*/
+/* Remove o \n do fgets */
 
 static void removerQuebraLinha(char texto[])
 {
@@ -262,12 +129,7 @@ static void removerQuebraLinha(char texto[])
     }
 }
 
-
-/*
-==========================================================
-Remove espacos e tabulacoes.
-==========================================================
-*/
+/* Remove espacos e tabulacoes */
 
 static void removerEspacos(char texto[])
 {
@@ -288,25 +150,20 @@ static void removerEspacos(char texto[])
     texto[j] = '\0';
 }
 
-
-static int ehLetra(char c)
+static int caractereLetra(char c)
 {
-    return (c >= 'a' && c <= 'z') ||
-           (c >= 'A' && c <= 'Z');
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-
-static int ehDigito(char c)
+static int caractereDigito(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-
-static int ehSinal(char c)
+static int caractereSinal(char c)
 {
     return c == '+' || c == '-';
 }
-
 
 static char paraMinusculo(char c)
 {
@@ -318,22 +175,9 @@ static char paraMinusculo(char c)
     return c;
 }
 
+/* Le numero inteiro ou decimal sem sinal */
 
-/*
-==========================================================
-Le numero decimal sem usar math.h.
-
-Aceita:
-    2
-    2.5
-    0.5
-    .5
-==========================================================
-*/
-
-static int lerNumero(const char texto[],
-                     int *indice,
-                     double *numero)
+static int lerNumeroBasico(const char texto[], int *indice, double *numero)
 {
     double valor = 0.0;
     double casaDecimal = 0.1;
@@ -341,7 +185,7 @@ static int lerNumero(const char texto[],
     int i = *indice;
     int possuiDigito = 0;
 
-    while(ehDigito(texto[i]))
+    while(caractereDigito(texto[i]))
     {
         valor = valor * 10.0 + (texto[i] - '0');
         i++;
@@ -352,10 +196,10 @@ static int lerNumero(const char texto[],
     {
         i++;
 
-        while(ehDigito(texto[i]))
+        while(caractereDigito(texto[i]))
         {
-            valor = valor + (texto[i] - '0') * casaDecimal;
-            casaDecimal = casaDecimal / 10.0;
+            valor += (texto[i] - '0') * casaDecimal;
+            casaDecimal /= 10.0;
             i++;
             possuiDigito = 1;
         }
@@ -372,22 +216,51 @@ static int lerNumero(const char texto[],
     return 1;
 }
 
+/* Le coeficiente inteiro, decimal ou fracionario */
 
-/*
-==========================================================
-Procura a posicao de uma variavel do dominio.
-==========================================================
-*/
+static int lerCoeficiente(const char texto[], int *indice, double *numero)
+{
+    double numerador;
+    double denominador;
 
-static int indiceVariavel(const char variaveisDominio[],
-                          int dimensaoDominio,
-                          char letra)
+    if(!lerNumeroBasico(texto, indice, &numerador))
+    {
+        return 0;
+    }
+
+    if(texto[*indice] == '/')
+    {
+        (*indice)++;
+
+        if(!lerNumeroBasico(texto, indice, &denominador))
+        {
+            return 0;
+        }
+
+        if(ehZero(denominador))
+        {
+            return 0;
+        }
+
+        *numero = numerador / denominador;
+    }
+    else
+    {
+        *numero = numerador;
+    }
+
+    return 1;
+}
+
+/* Procura uma variavel na lista do dominio */
+
+static int indiceVariavel(const char variaveis[], int quantidade, char letra)
 {
     letra = paraMinusculo(letra);
 
-    for(int i = 0; i < dimensaoDominio; i++)
+    for(int i = 0; i < quantidade; i++)
     {
-        if(variaveisDominio[i] == letra)
+        if(variaveis[i] == letra)
         {
             return i;
         }
@@ -396,30 +269,31 @@ static int indiceVariavel(const char variaveisDominio[],
     return -1;
 }
 
+/* Extrai as variaveis do dominio em T(x,y) */
 
-/*
-==========================================================
-Extrai as variaveis do dominio.
-
-Exemplo:
-    T(x,y,z)=(...)
-
-Resultado:
-    variaveisDominio = x, y, z
-    dimensaoDominio = 3
-==========================================================
-*/
-
-static int extrairVariaveisDominio(const char texto[],
-                                   char variaveisDominio[],
-                                   int *dimensaoDominio)
+static int extrairVariaveisDominio(const char texto[], char variaveis[], int *quantidadeVariaveis)
 {
     int abre = -1;
     int fecha = -1;
+    int igual = -1;
 
-    *dimensaoDominio = 0;
+    *quantidadeVariaveis = 0;
 
     for(int i = 0; texto[i] != '\0'; i++)
+    {
+        if(texto[i] == '=')
+        {
+            igual = i;
+            break;
+        }
+    }
+
+    if(igual == -1)
+    {
+        return 0;
+    }
+
+    for(int i = 0; i < igual; i++)
     {
         if(texto[i] == '(')
         {
@@ -433,7 +307,7 @@ static int extrairVariaveisDominio(const char texto[],
         return 0;
     }
 
-    for(int i = abre + 1; texto[i] != '\0'; i++)
+    for(int i = abre + 1; i < igual; i++)
     {
         if(texto[i] == ')')
         {
@@ -451,7 +325,7 @@ static int extrairVariaveisDominio(const char texto[],
 
     while(i < fecha)
     {
-        if(!ehLetra(texto[i]))
+        if(!caractereLetra(texto[i]))
         {
             return 0;
         }
@@ -463,20 +337,18 @@ static int extrairVariaveisDominio(const char texto[],
             return 0;
         }
 
-        if(indiceVariavel(variaveisDominio,
-                          *dimensaoDominio,
-                          letra) != -1)
+        if(indiceVariavel(variaveis, *quantidadeVariaveis, letra) != -1)
         {
             return 0;
         }
 
-        if(*dimensaoDominio >= MAX_VARIAVEIS)
+        if(*quantidadeVariaveis >= MAX_VARIAVEIS)
         {
             return 0;
         }
 
-        variaveisDominio[*dimensaoDominio] = letra;
-        (*dimensaoDominio)++;
+        variaveis[*quantidadeVariaveis] = letra;
+        (*quantidadeVariaveis)++;
 
         i++;
 
@@ -496,36 +368,18 @@ static int extrairVariaveisDominio(const char texto[],
         }
     }
 
-    return *dimensaoDominio > 0;
+    return *quantidadeVariaveis > 0;
 }
 
+/* Extrai as expressoes do resultado em T(...)=(...) */
 
-/*
-==========================================================
-Extrai as expressoes do contradominio.
-
-Exemplo:
-    T(x,y)=(y+2x,3x+5y)
-
-Resultado:
-    expressoesContradominio[0] = y+2x
-    expressoesContradominio[1] = 3x+5y
-
-    dimensaoContradominio = 2
-==========================================================
-*/
-
-static int extrairExpressoesContradominio(
-    const char texto[],
-    char expressoesContradominio[MAX_LINHAS][MAX_TAMANHO],
-    int *dimensaoContradominio
-)
+static int extrairExpressoesResultado(const char texto[], char expressoes[MAX_LINHAS][MAX_TAMANHO], int *quantidadeExpressoes)
 {
     int igual = -1;
     int abre = -1;
     int fecha = -1;
 
-    *dimensaoContradominio = 0;
+    *quantidadeExpressoes = 0;
 
     for(int i = 0; texto[i] != '\0'; i++)
     {
@@ -585,13 +439,13 @@ static int extrairExpressoesContradominio(
                 return 0;
             }
 
-            expressoesContradominio[*dimensaoContradominio][posExpressao] = '\0';
-            (*dimensaoContradominio)++;
-
-            if(*dimensaoContradominio > MAX_LINHAS)
+            if(*quantidadeExpressoes >= MAX_LINHAS)
             {
                 return 0;
             }
+
+            expressoes[*quantidadeExpressoes][posExpressao] = '\0';
+            (*quantidadeExpressoes)++;
 
             posExpressao = 0;
         }
@@ -602,36 +456,17 @@ static int extrairExpressoesContradominio(
                 return 0;
             }
 
-            expressoesContradominio[*dimensaoContradominio][posExpressao] = texto[i];
+            expressoes[*quantidadeExpressoes][posExpressao] = texto[i];
             posExpressao++;
         }
     }
 
-    return *dimensaoContradominio > 0;
+    return *quantidadeExpressoes > 0;
 }
 
+/* Interpreta uma expressao linear */
 
-/*
-==========================================================
-Interpreta uma expressao do contradominio.
-
-Exemplo:
-    expressao = z+x-y
-
-Variaveis do dominio:
-    x y z
-
-Resultado:
-    1 -1 1
-==========================================================
-*/
-
-static int interpretarExpressaoContradominio(
-    const char expressao[],
-    const char variaveisDominio[],
-    int dimensaoDominio,
-    double coeficientes[MAX_VARIAVEIS]
-)
+static int interpretarExpressao(const char expressao[], const char variaveis[], int quantidadeVariaveis, double coeficientes[MAX_VARIAVEIS])
 {
     int i = 0;
 
@@ -651,7 +486,7 @@ static int interpretarExpressaoContradominio(
         double numero = 1.0;
         int temNumero = 0;
 
-        if(ehSinal(expressao[i]))
+        if(caractereSinal(expressao[i]))
         {
             if(expressao[i] == '-')
             {
@@ -666,7 +501,7 @@ static int interpretarExpressaoContradominio(
             }
         }
 
-        if(lerNumero(expressao, &i, &numero))
+        if(lerCoeficiente(expressao, &i, &numero))
         {
             temNumero = 1;
         }
@@ -675,18 +510,17 @@ static int interpretarExpressaoContradominio(
             numero = 1.0;
         }
 
-        if(ehLetra(expressao[i]))
+        if(caractereLetra(expressao[i]))
         {
             char letra = paraMinusculo(expressao[i]);
+            int coluna;
 
             if(letra == 'i' || letra == 'j')
             {
                 return 0;
             }
 
-            int coluna = indiceVariavel(variaveisDominio,
-                                        dimensaoDominio,
-                                        letra);
+            coluna = indiceVariavel(variaveis, quantidadeVariaveis, letra);
 
             if(coluna == -1)
             {
@@ -694,29 +528,21 @@ static int interpretarExpressaoContradominio(
             }
 
             coeficientes[coluna] += sinal * numero;
-
             i++;
 
-            if(expressao[i] != '\0' && !ehSinal(expressao[i]))
+            if(expressao[i] != '\0' && !caractereSinal(expressao[i]))
             {
                 return 0;
             }
         }
         else if(temNumero)
         {
-            /*
-                Transformacao linear nao pode ter termo constante.
-
-                Permitimos apenas constante 0:
-                    T(x,y)=(0,x+y)
-            */
-
             if(!ehZero(numero))
             {
                 return 0;
             }
 
-            if(expressao[i] != '\0' && !ehSinal(expressao[i]))
+            if(expressao[i] != '\0' && !caractereSinal(expressao[i]))
             {
                 return 0;
             }
@@ -730,42 +556,38 @@ static int interpretarExpressaoContradominio(
     return 1;
 }
 
+/* Monta a matriz associada da transformacao */
 
-/*
-==========================================================
-Monta a matriz da transformacao.
-
-Numero de linhas  = dimensao do contradominio
-Numero de colunas = dimensao do dominio
-==========================================================
-*/
-
-static int montarMatrizTransformacao(
-    const char expressoesContradominio[MAX_LINHAS][MAX_TAMANHO],
-    int dimensaoContradominio,
-    const char variaveisDominio[],
-    int dimensaoDominio,
-    Matriz *matriz
-)
+static int montarMatrizTransformacao(const char texto[], Matriz *matriz)
 {
+    char variaveis[MAX_VARIAVEIS];
+    char expressoes[MAX_LINHAS][MAX_TAMANHO];
+
+    int quantidadeVariaveis = 0;
+    int quantidadeExpressoes = 0;
+
     double coeficientes[MAX_VARIAVEIS];
 
-    inicializarMatriz(matriz,
-                      dimensaoContradominio,
-                      dimensaoDominio);
-
-    for(int linha = 0; linha < dimensaoContradominio; linha++)
+    if(!extrairVariaveisDominio(texto, variaveis, &quantidadeVariaveis))
     {
-        if(!interpretarExpressaoContradominio(
-                expressoesContradominio[linha],
-                variaveisDominio,
-                dimensaoDominio,
-                coeficientes))
+        return 0;
+    }
+
+    if(!extrairExpressoesResultado(texto, expressoes, &quantidadeExpressoes))
+    {
+        return 0;
+    }
+
+    inicializarMatriz(matriz, quantidadeExpressoes, quantidadeVariaveis);
+
+    for(int linha = 0; linha < quantidadeExpressoes; linha++)
+    {
+        if(!interpretarExpressao(expressoes[linha], variaveis, quantidadeVariaveis, coeficientes))
         {
             return 0;
         }
 
-        for(int coluna = 0; coluna < dimensaoDominio; coluna++)
+        for(int coluna = 0; coluna < quantidadeVariaveis; coluna++)
         {
             matriz->dados[linha][coluna] = coeficientes[coluna];
         }
@@ -774,90 +596,7 @@ static int montarMatrizTransformacao(
     return 1;
 }
 
-
-/*
-==========================================================
-Mostra as variaveis do dominio.
-==========================================================
-*/
-
-static void imprimirVariaveisDominio(const char variaveisDominio[],
-                                     int dimensaoDominio)
-{
-    printf("\nVariaveis do dominio:\n");
-
-    for(int i = 0; i < dimensaoDominio; i++)
-    {
-        printf("%c ", variaveisDominio[i]);
-    }
-
-    printf("\n");
-}
-
-
-/*
-==========================================================
-Analisa nucleo, imagem, injetividade, sobrejetividade e
-bijetividade.
-==========================================================
-*/
-
-static void analisarTransformacao(const Matriz *matriz,
-                                  const char variaveisDominio[],
-                                  int dimensaoDominio,
-                                  int dimensaoContradominio)
-{
-    int posto = calcularPosto(matriz);
-
-    int dimImagem = dimensaoImagem(matriz);
-    int dimNucleo = dimensaoNucleo(matriz);
-
-    printf("\nTransformacao identificada:\n");
-    printf("T: R%d -> R%d\n",
-           dimensaoDominio,
-           dimensaoContradominio);
-
-    printf("\nPosto da matriz: %d\n", posto);
-
-    printf("\nDimensao da imagem: %d\n", dimImagem);
-    printf("Dimensao do nucleo: %d\n", dimNucleo);
-
-    printf("\nClassificacao:\n");
-
-    if(ehTransformacaoInjetiva(matriz))
-    {
-        printf("A transformacao e injetora.\n");
-    }
-    else
-    {
-        printf("A transformacao nao e injetora.\n");
-    }
-
-    if(ehTransformacaoSobrejetiva(matriz))
-    {
-        printf("A transformacao e sobrejetora.\n");
-    }
-    else
-    {
-        printf("A transformacao nao e sobrejetora.\n");
-    }
-
-    if(ehTransformacaoBijetiva(matriz))
-    {
-        printf("A transformacao e bijetora.\n");
-    }
-    else
-    {
-        printf("A transformacao nao e bijetora.\n");
-    }
-}
-
-
-/*
-==========================================================
-Pausa.
-==========================================================
-*/
+/* Pausa a tela */
 
 static void pausarTransformacao(void)
 {
