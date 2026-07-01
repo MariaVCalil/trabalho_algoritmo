@@ -1,24 +1,14 @@
 #include <stdio.h>
 #include <string.h>
-
 #include "parser.h"
 
-/*
-==========================================================
-Funcoes privadas do parser.c
-
-Como sao static, elas so podem ser usadas dentro deste
-arquivo.
-==========================================================
-*/
+/* Funcoes privadas */
 
 static void removerQuebraLinha(char texto[]);
 static void removerEspacos(char texto[]);
-
 static int ehDigito(char c);
 static int ehLetra(char c);
 static int ehSinal(char c);
-
 static char paraMinusculo(char c);
 
 static void limparVariaveis(Variaveis *vars);
@@ -26,36 +16,19 @@ static void limparEquacao(Equacao *eq);
 
 static int indiceVariavel(const Variaveis *vars, char letra);
 static int adicionarVariavel(Variaveis *vars, char letra);
-
 static void ordenarVariaveis(Variaveis *vars);
 static void atualizarColunas(Variaveis *vars);
 
 static int encontrarIgual(const char texto[]);
+static int lerNumero(const char texto[], int *indice, double *numero);
 
-static int lerNumero(const char texto[],int *indice,double *numero);
+static int interpretarLadoEsquerdo(const char texto[], int fim, const Variaveis *vars, Equacao *eq);
+static int interpretarLadoDireito(const char texto[], int inicio, Equacao *eq);
+static int interpretarEquacao(const char texto[], const Variaveis *vars, Equacao *eq);
 
-static int interpretarLadoEsquerdo(const char texto[],int fim,const Variaveis *vars,Equacao *eq);
+static void preencherLinha(const Equacao *eq, Matriz *matriz, int linha, int quantidadeVariaveis);
 
-static int interpretarLadoDireito(const char texto[],int inicio,Equacao *eq);
-
-static int interpretarEquacao(const char texto[],const Variaveis *vars, Equacao *eq);
-
-static void preencherLinha(const Equacao *eq, Matriz *matriz,int linha,int quantidadeVariaveis);
-
-
-/*
-==========================================================
-Funcao publica:
-    lerSistema
-
-Objetivo:
-    Ler as equacoes digitadas pelo usuario.
-
-Regra:
-    O usuario NAO informa a quantidade de equacoes.
-    O programa conta automaticamente.
-==========================================================
-*/
+/* Le as equacoes digitadas pelo usuario */
 
 void lerSistema(SistemaEntrada *entrada)
 {
@@ -84,10 +57,6 @@ void lerSistema(SistemaEntrada *entrada)
         removerQuebraLinha(linha);
         removerEspacos(linha);
 
-        /*
-            Se o usuario apertar ENTER sem digitar nada,
-            a leitura termina.
-        */
         if(strlen(linha) == 0)
         {
             break;
@@ -103,26 +72,9 @@ void lerSistema(SistemaEntrada *entrada)
     }
 }
 
+/* Identifica automaticamente as variaveis do sistema */
 
-/*
-==========================================================
-Funcao publica:
-    identificarVariaveis
-
-Objetivo:
-    Descobrir automaticamente quais variaveis aparecem
-    no sistema.
-
-Exemplo:
-    2y+x+5z=10
-
-Variaveis encontradas:
-    x, y, z
-==========================================================
-*/
-
-int identificarVariaveis(const SistemaEntrada *entrada,
-                         Variaveis *vars)
+int identificarVariaveis(const SistemaEntrada *entrada, Variaveis *vars)
 {
     limparVariaveis(vars);
 
@@ -148,10 +100,6 @@ int identificarVariaveis(const SistemaEntrada *entrada,
             {
                 char letra = paraMinusculo(entrada->texto[i][j]);
 
-                /*
-                    Bloqueamos i e j para evitar interpretacao
-                    como numero complexo.
-                */
                 if(letra == 'i' || letra == 'j')
                 {
                     printf("\nErro: a equacao %d possui possivel valor complexo.\n", i + 1);
@@ -159,10 +107,6 @@ int identificarVariaveis(const SistemaEntrada *entrada,
                     return 0;
                 }
 
-                /*
-                    As variaveis devem aparecer antes do sinal de igual.
-                    O lado direito deve ser apenas um numero.
-                */
                 if(j > posIgual)
                 {
                     printf("\nErro: o lado direito da equacao %d deve ser numerico.\n", i + 1);
@@ -190,25 +134,9 @@ int identificarVariaveis(const SistemaEntrada *entrada,
     return 1;
 }
 
+/* Monta a matriz aumentada do sistema */
 
-/*
-==========================================================
-Funcao publica:
-    montarSistema
-
-Objetivo:
-    Interpretar todas as equacoes e montar a matriz
-    aumentada.
-
-Importante:
-    A matriz so sera preenchida se TODAS as equacoes
-    forem validas.
-==========================================================
-*/
-
-int montarSistema(const SistemaEntrada *entrada,
-                  const Variaveis *vars,
-                  Matriz *matriz)
+int montarSistema(const SistemaEntrada *entrada, const Variaveis *vars, Matriz *matriz)
 {
     Equacao equacoes[MAX_EQUACOES];
 
@@ -229,43 +157,26 @@ int montarSistema(const SistemaEntrada *entrada,
         limparEquacao(&equacoes[i]);
     }
 
-    /*
-        Primeiro interpretamos todas as equacoes.
-        Ainda NAO colocamos nada na matriz.
-    */
     for(int i = 0; i < entrada->quantidade; i++)
     {
-        if(!interpretarEquacao(entrada->texto[i],vars,&equacoes[i]))
+        if(!interpretarEquacao(entrada->texto[i], vars, &equacoes[i]))
         {
             printf("\nErro: a equacao %d possui sintaxe invalida.\n", i + 1);
             return 0;
         }
     }
 
-    /*
-        Se chegou aqui, todas as equacoes sao validas.
-        Agora sim podemos criar a matriz aumentada.
-    */
-    inicializarMatriz(matriz,entrada->quantidade,vars->quantidade + 1);
+    inicializarMatriz(matriz, entrada->quantidade, vars->quantidade + 1);
 
     for(int i = 0; i < entrada->quantidade; i++)
     {
-        preencherLinha(&equacoes[i],matriz,i,vars->quantidade);
+        preencherLinha(&equacoes[i], matriz, i, vars->quantidade);
     }
 
     return 1;
 }
 
-
-/*
-==========================================================
-Funcao publica:
-    imprimirVariaveis
-
-Objetivo:
-    Mostrar a ordem das variaveis encontradas.
-==========================================================
-*/
+/* Imprime as variaveis detectadas */
 
 void imprimirVariaveis(const Variaveis *vars)
 {
@@ -279,12 +190,7 @@ void imprimirVariaveis(const Variaveis *vars)
     printf("\n");
 }
 
-
-/*
-==========================================================
-Remove o \n deixado pelo fgets.
-==========================================================
-*/
+/* Remove o \n do fgets */
 
 static void removerQuebraLinha(char texto[])
 {
@@ -298,18 +204,7 @@ static void removerQuebraLinha(char texto[])
     }
 }
 
-
-/*
-==========================================================
-Remove espacos em branco da equacao.
-
-Exemplo:
-    2y + x = 5
-
-Vira:
-    2y+x=5
-==========================================================
-*/
+/* Remove espacos e tabulacoes */
 
 static void removerEspacos(char texto[])
 {
@@ -330,52 +225,20 @@ static void removerEspacos(char texto[])
     texto[j] = '\0';
 }
 
-
-/*
-==========================================================
-Verifica se um caractere e digito.
-==========================================================
-*/
-
 static int ehDigito(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-
-/*
-==========================================================
-Verifica se um caractere e letra.
-==========================================================
-*/
-
 static int ehLetra(char c)
 {
-    return (c >= 'a' && c <= 'z') ||
-           (c >= 'A' && c <= 'Z');
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
-
-
-/*
-==========================================================
-Verifica se um caractere e sinal + ou -.
-==========================================================
-*/
 
 static int ehSinal(char c)
 {
     return c == '+' || c == '-';
 }
-
-
-/*
-==========================================================
-Converte letra maiuscula para minuscula.
-
-Exemplo:
-    X vira x
-==========================================================
-*/
 
 static char paraMinusculo(char c)
 {
@@ -387,12 +250,7 @@ static char paraMinusculo(char c)
     return c;
 }
 
-
-/*
-==========================================================
-Limpa a lista de variaveis.
-==========================================================
-*/
+/* Limpa a lista de variaveis */
 
 static void limparVariaveis(Variaveis *vars)
 {
@@ -405,12 +263,7 @@ static void limparVariaveis(Variaveis *vars)
     }
 }
 
-
-/*
-==========================================================
-Limpa uma equacao interpretada.
-==========================================================
-*/
+/* Limpa uma equacao */
 
 static void limparEquacao(Equacao *eq)
 {
@@ -420,19 +273,9 @@ static void limparEquacao(Equacao *eq)
     }
 
     eq->resultado = 0.0;
-    eq->valida = 0;
 }
 
-
-/*
-==========================================================
-Procura uma variavel na lista.
-
-Retorna:
-    coluna da variavel, se encontrou
-    -1, se nao encontrou
-==========================================================
-*/
+/* Retorna a coluna da variavel */
 
 static int indiceVariavel(const Variaveis *vars, char letra)
 {
@@ -449,16 +292,7 @@ static int indiceVariavel(const Variaveis *vars, char letra)
     return -1;
 }
 
-
-/*
-==========================================================
-Adiciona uma variavel na lista, sem repetir.
-
-Retorna:
-    1 -> sucesso
-    0 -> erro, passou do limite
-==========================================================
-*/
+/* Adiciona uma variavel sem repetir */
 
 static int adicionarVariavel(Variaveis *vars, char letra)
 {
@@ -484,18 +318,7 @@ static int adicionarVariavel(Variaveis *vars, char letra)
     return 1;
 }
 
-
-/*
-==========================================================
-Ordena as variaveis em ordem alfabetica.
-
-Exemplo:
-    y x z
-
-Vira:
-    x y z
-==========================================================
-*/
+/* Ordena as variaveis em ordem alfabetica */
 
 static void ordenarVariaveis(Variaveis *vars)
 {
@@ -515,12 +338,7 @@ static void ordenarVariaveis(Variaveis *vars)
     }
 }
 
-
-/*
-==========================================================
-Atualiza a coluna de cada variavel depois da ordenacao.
-==========================================================
-*/
+/* Atualiza as colunas depois da ordenacao */
 
 static void atualizarColunas(Variaveis *vars)
 {
@@ -530,16 +348,7 @@ static void atualizarColunas(Variaveis *vars)
     }
 }
 
-
-/*
-==========================================================
-Verifica se existe exatamente um sinal de igual.
-
-Retorna:
-    posicao do =
-    -1 se nao houver ou se houver mais de um
-==========================================================
-*/
+/* Encontra o sinal de igual */
 
 static int encontrarIgual(const char texto[])
 {
@@ -563,28 +372,9 @@ static int encontrarIgual(const char texto[])
     return posicao;
 }
 
+/* Le numeros inteiros ou decimais */
 
-/*
-==========================================================
-Le um numero a partir de uma posicao da string.
-
-Exemplo:
-    texto = "2.5x"
-    indice comeca em 0
-
-Resultado:
-    numero = 2.5
-    indice passa a apontar para x
-
-Observacao:
-    Esta funcao NAO le sinal.
-    O sinal e tratado antes.
-==========================================================
-*/
-
-static int lerNumero(const char texto[],
-                     int *indice,
-                     double *numero)
+static int lerNumero(const char texto[], int *indice, double *numero)
 {
     double valor = 0.0;
     double casaDecimal = 0.1;
@@ -605,8 +395,8 @@ static int lerNumero(const char texto[],
 
         while(ehDigito(texto[i]))
         {
-            valor = valor + (texto[i] - '0') * casaDecimal;
-            casaDecimal = casaDecimal / 10.0;
+            valor += (texto[i] - '0') * casaDecimal;
+            casaDecimal /= 10.0;
             i++;
             possuiDigito = 1;
         }
@@ -623,25 +413,9 @@ static int lerNumero(const char texto[],
     return 1;
 }
 
+/* Interpreta o lado esquerdo da equacao */
 
-/*
-==========================================================
-Interpreta o lado esquerdo da equacao.
-
-Exemplo:
-    2y+x-5z
-
-Com variaveis:
-    x y z
-
-Gera:
-    x = 1
-    y = 2
-    z = -5
-==========================================================
-*/
-
-static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *vars, Equacao *eq)
+static int interpretarLadoEsquerdo(const char texto[], int fim, const Variaveis *vars, Equacao *eq)
 {
     int i = 0;
 
@@ -671,14 +445,6 @@ static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *
             }
         }
 
-        /*
-            Tenta ler um numero.
-
-            Exemplos:
-                2x  -> numero 2
-                5   -> constante 5
-                x   -> nao tem numero, entao coeficiente 1
-        */
         if(lerNumero(texto, &i, &numero))
         {
             temNumero = 1;
@@ -688,25 +454,17 @@ static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *
             numero = 1.0;
         }
 
-        /*
-            Caso 1:
-            Depois do numero veio uma letra.
-
-            Exemplo:
-                2x
-                -5y
-                x
-        */
         if(i < fim && ehLetra(texto[i]))
         {
             char letra = paraMinusculo(texto[i]);
+            int coluna;
 
             if(letra == 'i' || letra == 'j')
             {
                 return 0;
             }
 
-            int coluna = indiceVariavel(vars, letra);
+            coluna = indiceVariavel(vars, letra);
 
             if(coluna == -1)
             {
@@ -714,7 +472,6 @@ static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *
             }
 
             eq->coeficientes[coluna] += sinal * numero;
-
             i++;
 
             if(i < fim && !ehSinal(texto[i]))
@@ -722,16 +479,6 @@ static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *
                 return 0;
             }
         }
-        /*
-            Caso 2:
-            Era apenas um numero no lado esquerdo.
-
-            Exemplo:
-                x + 5 = 2
-
-            O 5 precisa ir para o outro lado:
-                x = 2 - 5
-        */
         else if(temNumero)
         {
             eq->resultado -= sinal * numero;
@@ -741,11 +488,6 @@ static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *
                 return 0;
             }
         }
-        /*
-            Caso 3:
-            Nao tem numero e nao tem letra.
-            Entao a sintaxe esta errada.
-        */
         else
         {
             return 0;
@@ -755,22 +497,9 @@ static int interpretarLadoEsquerdo(const char texto[],int fim, const Variaveis *
     return 1;
 }
 
-/*
-==========================================================
-Interpreta o lado direito da equacao.
+/* Interpreta o lado direito da equacao */
 
-Exemplos:
-    =10
-    =-5
-    =2.5
-
-O lado direito deve ser apenas um numero real.
-==========================================================
-*/
-
-static int interpretarLadoDireito(const char texto[],
-                                  int inicio,
-                                  Equacao *eq)
+static int interpretarLadoDireito(const char texto[], int inicio, Equacao *eq)
 {
     int i = inicio;
     int sinal = 1;
@@ -801,44 +530,19 @@ static int interpretarLadoDireito(const char texto[],
         return 0;
     }
 
-    /*
-        Se sobrou qualquer caractere depois do numero,
-        entao a sintaxe esta incorreta.
-    */
     if(texto[i] != '\0')
     {
         return 0;
     }
 
-    /*
-        Aqui atribuimos o resultado do lado direito.
-
-        Exemplo:
-            x + 5 = 2
-
-        Primeiro:
-            resultado = 2
-
-        Depois, o lado esquerdo ajusta:
-            resultado = 2 - 5
-    */
     eq->resultado = sinal * numero;
 
     return 1;
 }
 
-/*
-==========================================================
-Interpreta uma equacao completa.
+/* Interpreta uma equacao completa */
 
-Exemplo:
-    2y+x-5z=10
-==========================================================
-*/
-
-static int interpretarEquacao(const char texto[],
-                              const Variaveis *vars,
-                              Equacao *eq)
+static int interpretarEquacao(const char texto[], const Variaveis *vars, Equacao *eq)
 {
     char copia[MAX_TAMANHO];
 
@@ -849,52 +553,27 @@ static int interpretarEquacao(const char texto[],
 
     int posIgual = encontrarIgual(copia);
 
-    if(posIgual == -1)
+    if(posIgual <= 0 || copia[posIgual + 1] == '\0')
     {
         return 0;
     }
 
-    if(posIgual == 0)
+    if(!interpretarLadoDireito(copia, posIgual + 1, eq))
     {
         return 0;
     }
 
-    if(copia[posIgual + 1] == '\0')
+    if(!interpretarLadoEsquerdo(copia, posIgual, vars, eq))
     {
         return 0;
     }
-
-    if(!interpretarLadoDireito(copia,
-                           posIgual + 1,
-                           eq))
-{
-    return 0;
-}
-
-if(!interpretarLadoEsquerdo(copia,posIgual,vars, eq))
-{
-    return 0;
-}
-    eq->valida = 1;
 
     return 1;
 }
 
+/* Preenche uma linha da matriz aumentada */
 
-/*
-==========================================================
-Preenche uma linha da matriz aumentada.
-
-Exemplo:
-    coeficientes: 1 2 -5
-    resultado: 10
-
-Matriz:
-    1  2  -5 | 10
-==========================================================
-*/
-
-static void preencherLinha(const Equacao *eq,Matriz *matriz,int linha,int quantidadeVariaveis)
+static void preencherLinha(const Equacao *eq, Matriz *matriz, int linha, int quantidadeVariaveis)
 {
     for(int coluna = 0; coluna < quantidadeVariaveis; coluna++)
     {
