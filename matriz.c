@@ -1,10 +1,9 @@
 #include <stdio.h>
-
 #include "matriz.h"
 
-void inicializarMatriz(Matriz *m,
-                       int linhas,
-                       int colunas)
+//a matriz inicia zerada
+
+void inicializarMatriz(Matriz *m, int linhas, int colunas)
 {
     m->linhas = linhas;
     m->colunas = colunas;
@@ -18,8 +17,9 @@ void inicializarMatriz(Matriz *m,
     }
 }
 
-void copiarMatriz(const Matriz *origem,
-                  Matriz *destino)
+// Copia uma matriz para outra
+
+void copiarMatriz(const Matriz *origem, Matriz *destino)
 {
     destino->linhas = origem->linhas;
     destino->colunas = origem->colunas;
@@ -32,6 +32,8 @@ void copiarMatriz(const Matriz *origem,
         }
     }
 }
+
+//Imprime a matriz na tela
 
 void imprimirMatriz(const Matriz *m)
 {
@@ -50,6 +52,8 @@ void imprimirMatriz(const Matriz *m)
     printf("\n");
 }
 
+//Retorna o valor absoluto de um numero.
+
 double absoluto(double numero)
 {
     if(numero < 0)
@@ -60,30 +64,31 @@ double absoluto(double numero)
     return numero;
 }
 
+//Verifica se um numero real pode ser considerado zero.
+
 int ehZero(double numero)
 {
     return absoluto(numero) < EPSILON;
 }
 
-void trocarLinhas(Matriz *m,
-                  int linha1,
-                  int linha2)
+// Troca duas linhas da matriz.
+
+void trocarLinhas(Matriz *m, int linha1, int linha2)
 {
     double auxiliar;
 
     for(int coluna = 0; coluna < m->colunas; coluna++)
     {
         auxiliar = m->dados[linha1][coluna];
-
         m->dados[linha1][coluna] = m->dados[linha2][coluna];
-
         m->dados[linha2][coluna] = auxiliar;
     }
 }
 
-void multiplicarLinha(Matriz *m,
-                      int linha,
-                      double escalar)
+//Multiplica uma linha por um escalar.
+
+
+void multiplicarLinha(Matriz *m, int linha, double escalar)
 {
     for(int coluna = 0; coluna < m->colunas; coluna++)
     {
@@ -91,10 +96,10 @@ void multiplicarLinha(Matriz *m,
     }
 }
 
-void adicionarMultiplo(Matriz *m,
-                       int destino,
-                       int origem,
-                       double fator)
+// Soma a uma linha um multiplo de outra linha.
+// Exemplo:Ldestino = Ldestino + fator * Lorigem
+
+void adicionarMultiplo(Matriz *m, int destino, int origem, double fator)
 {
     for(int coluna = 0; coluna < m->colunas; coluna++)
     {
