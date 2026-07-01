@@ -2,68 +2,35 @@
 #include <string.h>
 
 #include "base.h"
-#include "matriz.h"
 #include "sistemas.h"
 #include "config.h"
-
-/*
-==========================================================
-Funcoes privadas
-==========================================================
-*/
 
 static void removerQuebraLinha(char texto[]);
 static void removerEspacos(char texto[]);
 
-static int ehDigito(char c);
-static int ehSinal(char c);
+static int caractereDigito(char c);
+static int caractereSinal(char c);
 
-static int lerNumeroComSinal(const char texto[],
-                             int *indice,
-                             double *numero);
+static int lerNumeroComSinal(const char texto[], int *indice, double *numero);
 
-static int extrairVetores(const char texto[],
-                          double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],
-                          int *quantidadeVetores,
-                          int *dimensao);
+static int extrairVetores(const char texto[], double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int *quantidadeVetores, int *dimensao);
 
-static void montarMatrizVetores(const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],
-                                int quantidadeVetores,
-                                int dimensao,
-                                Matriz *matriz);
+static void montarMatrizVetores(const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int quantidadeVetores, int dimensao, Matriz *matriz);
 
-static void analisarConjunto(const Matriz *matrizVetores,
-                             const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],
-                             int quantidadeVetores,
-                             int dimensao);
+static void analisarConjunto(const Matriz *matrizVetores, const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int quantidadeVetores, int dimensao);
 
-static int subconjuntoFormaBase(const Matriz *matrizVetores,
-                                int dimensao,
-                                int selecionados[MAX_VARIAVEIS]);
+static int subconjuntoFormaBase(const Matriz *matrizVetores, int dimensao, int selecionados[MAX_VARIAVEIS]);
 
-static void montarMatrizComSelecionados(const Matriz *matrizOriginal,
-                                        const int selecionados[MAX_VARIAVEIS],
-                                        int quantidadeSelecionados,
-                                        Matriz *resultado);
+static void montarMatrizComSelecionados(const Matriz *matrizOriginal, const int selecionados[MAX_VARIAVEIS], int quantidadeSelecionados, Matriz *resultado);
 
-static void encontrarSubconjuntoIndependente(const Matriz *matrizVetores,
-                                             int selecionados[MAX_VARIAVEIS],
-                                             int *quantidadeSelecionados);
+static void encontrarSubconjuntoIndependente(const Matriz *matrizVetores, int selecionados[MAX_VARIAVEIS], int *quantidadeSelecionados);
 
-static void completarParaBase(const Matriz *matrizVetores,const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],int quantidadeVetores,int dimensao);
+static void completarParaBase(const Matriz *matrizVetores, const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int dimensao);
 
-static void imprimirVetor(const double vetor[],int dimensao);
-
-static void imprimirConjunto(const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],int quantidadeVetores,int dimensao);
+static void imprimirVetor(const double vetor[], int dimensao);
 
 static void pausarBase(void);
 
-
-/*
-==========================================================
-Funcao principal da Questao 3.
-==========================================================
-*/
 
 void executarBases(void)
 {
@@ -76,6 +43,8 @@ void executarBases(void)
 
     Matriz matrizVetores;
 
+    printf("\nQUESTAO 3 - BASES EM R2 E R3\n");
+
     printf("\nDigite o conjunto de vetores.\n");
 
     printf("\nFormatos aceitos:\n");
@@ -84,9 +53,6 @@ void executarBases(void)
     printf("  V2={(1,1),(2,2),(1,0)}\n");
     printf("  V3={(1,0,2),(2,1,3)}\n");
 
-    printf("\nObservacoes:\n");
-    printf("  - Use parenteses para cada vetor.\n");
-    printf("  - Separe os vetores por virgula.\n");
     printf("\nConjunto: ");
 
     if(fgets(texto, MAX_TAMANHO, stdin) == NULL)
@@ -94,7 +60,6 @@ void executarBases(void)
         printf("\nErro de leitura.\n");
         pausarBase();
         return;
-    
     }
 
     removerQuebraLinha(texto);
@@ -107,7 +72,7 @@ void executarBases(void)
         return;
     }
 
-    if(!extrairVetores(texto,vetores,&quantidadeVetores,&dimensao))
+    if(!extrairVetores(texto, vetores, &quantidadeVetores, &dimensao))
     {
         printf("\nErro: conjunto invalido.\n");
         printf("Use o formato {(2,1),(1,3)} ou V1={(2,1),(1,3)}.\n");
@@ -115,49 +80,25 @@ void executarBases(void)
         return;
     }
 
-    montarMatrizVetores(vetores,quantidadeVetores,dimensao,&matrizVetores);
+    montarMatrizVetores(vetores, quantidadeVetores, dimensao, &matrizVetores);
 
-    printf("\nConjunto digitado:\n");
-    imprimirConjunto(vetores,quantidadeVetores,dimensao);
-
-    printf("\nEspaco identificado automaticamente: R%d\n", dimensao);
-
-    printf("\nMatriz dos vetores em colunas:\n");
-    imprimirMatriz(&matrizVetores);
-
-    analisarConjunto(&matrizVetores,vetores,quantidadeVetores,dimensao);
+    analisarConjunto(&matrizVetores, vetores, quantidadeVetores, dimensao);
 
     pausarBase();
 }
 
-
-/*
-==========================================================
-Verifica se o conjunto forma base.
-
-Regra:
-    Um conjunto forma base de Rn quando:
-        - tem n vetores
-        - o posto da matriz dos vetores e n
-==========================================================
-*/
+/* Verifica se o conjunto forma base */
 
 int conjuntoFormaBase(const Matriz *matrizVetores)
 {
     int dimensao = matrizVetores->linhas;
     int quantidadeVetores = matrizVetores->colunas;
-
     int posto = calcularPosto(matrizVetores);
 
     return quantidadeVetores == dimensao && posto == dimensao;
 }
 
-
-/*
-==========================================================
-Remove \n do fgets.
-==========================================================
-*/
+/* Remove o \n do fgets */
 
 static void removerQuebraLinha(char texto[])
 {
@@ -171,12 +112,7 @@ static void removerQuebraLinha(char texto[])
     }
 }
 
-
-/*
-==========================================================
-Remove espacos e tabulacoes.
-==========================================================
-*/
+/* Remove espacos e tabulacoes */
 
 static void removerEspacos(char texto[])
 {
@@ -197,33 +133,19 @@ static void removerEspacos(char texto[])
     texto[j] = '\0';
 }
 
-
-static int ehDigito(char c)
+static int caractereDigito(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-
-static int ehSinal(char c)
+static int caractereSinal(char c)
 {
     return c == '+' || c == '-';
 }
 
+/* Le numero positivo ou negativo */
 
-/*
-==========================================================
-Le numero com sinal.
-
-Aceita:
-    2
-    -2
-    2.5
-    -0.5
-    .5
-==========================================================
-*/
-
-static int lerNumeroComSinal(const char texto[],int *indice,double *numero)
+static int lerNumeroComSinal(const char texto[], int *indice, double *numero)
 {
     int i = *indice;
     int sinal = 1;
@@ -233,7 +155,7 @@ static int lerNumeroComSinal(const char texto[],int *indice,double *numero)
 
     int possuiDigito = 0;
 
-    if(ehSinal(texto[i]))
+    if(caractereSinal(texto[i]))
     {
         if(texto[i] == '-')
         {
@@ -243,7 +165,7 @@ static int lerNumeroComSinal(const char texto[],int *indice,double *numero)
         i++;
     }
 
-    while(ehDigito(texto[i]))
+    while(caractereDigito(texto[i]))
     {
         valor = valor * 10.0 + (texto[i] - '0');
         i++;
@@ -254,10 +176,10 @@ static int lerNumeroComSinal(const char texto[],int *indice,double *numero)
     {
         i++;
 
-        while(ehDigito(texto[i]))
+        while(caractereDigito(texto[i]))
         {
-            valor = valor + (texto[i] - '0') * casaDecimal;
-            casaDecimal = casaDecimal / 10.0;
+            valor += (texto[i] - '0') * casaDecimal;
+            casaDecimal /= 10.0;
             i++;
             possuiDigito = 1;
         }
@@ -274,23 +196,9 @@ static int lerNumeroComSinal(const char texto[],int *indice,double *numero)
     return 1;
 }
 
+/* Extrai os vetores digitados */
 
-/*
-==========================================================
-Extrai os vetores do texto.
-
-Aceita:
-    {(2,1),(1,3)}
-    V1={(2,1),(1,3)}
-    a)EmR2:V1={(2,1),(1,3)}
-    e)EmR3:V5={(1,2,0),(2,4,1),(3,6,1)}
-
-A funcao ignora tudo antes da primeira {.
-Se nao houver {, tenta comecar pelo primeiro vetor.
-==========================================================
-*/
-
-static int extrairVetores(const char texto[],double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],int *quantidadeVetores,int *dimensao)
+static int extrairVetores(const char texto[], double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int *quantidadeVetores, int *dimensao)
 {
     int i;
     int inicio = -1;
@@ -307,9 +215,6 @@ static int extrairVetores(const char texto[],double vetores[MAX_VARIAVEIS][MAX_V
         }
     }
 
-    /*
-        Primeiro procura a abertura do conjunto.
-    */
     for(int k = 0; texto[k] != '\0'; k++)
     {
         if(texto[k] == '{')
@@ -320,11 +225,6 @@ static int extrairVetores(const char texto[],double vetores[MAX_VARIAVEIS][MAX_V
         }
     }
 
-    /*
-        Se nao tiver {, aceita comecar no primeiro vetor.
-        Exemplo:
-            (2,1),(1,3)
-    */
     if(inicio == -1)
     {
         for(int k = 0; texto[k] != '\0'; k++)
@@ -446,11 +346,6 @@ static int extrairVetores(const char texto[],double vetores[MAX_VARIAVEIS][MAX_V
         }
     }
 
-    /*
-        Depois do fechamento }, permite ; ou .
-        Exemplo:
-            V1={(2,1),(1,3)}.
-    */
     while(texto[i] != '\0')
     {
         if(texto[i] != ';' && texto[i] != '.')
@@ -464,24 +359,11 @@ static int extrairVetores(const char texto[],double vetores[MAX_VARIAVEIS][MAX_V
     return *quantidadeVetores > 0 && (*dimensao == 2 || *dimensao == 3);
 }
 
+/* Monta a matriz colocando os vetores em colunas */
 
-/*
-==========================================================
-Monta a matriz colocando os vetores em colunas.
-
-Exemplo:
-    v1 = (2,1)
-    v2 = (1,3)
-
-Matriz:
-    2  1
-    1  3
-==========================================================
-*/
-
-static void montarMatrizVetores(const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],int quantidadeVetores,int dimensao,Matriz *matriz)
+static void montarMatrizVetores(const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int quantidadeVetores, int dimensao, Matriz *matriz)
 {
-    inicializarMatriz(matriz,dimensao,quantidadeVetores);
+    inicializarMatriz(matriz, dimensao, quantidadeVetores);
 
     for(int coluna = 0; coluna < quantidadeVetores; coluna++)
     {
@@ -492,41 +374,32 @@ static void montarMatrizVetores(const double vetores[MAX_VARIAVEIS][MAX_VARIAVEI
     }
 }
 
+/* Analisa se o conjunto forma base */
 
-/*
-==========================================================
-Analisa o conjunto de vetores.
-==========================================================
-*/
-
-static void analisarConjunto(const Matriz *matrizVetores,const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],int quantidadeVetores,int dimensao)
+static void analisarConjunto(const Matriz *matrizVetores, const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int quantidadeVetores, int dimensao)
 {
     int posto = calcularPosto(matrizVetores);
 
-    printf("\nPosto do conjunto: %d\n", posto);
+    printf("\nResultado:\n");
+    printf("Espaco identificado: R%d\n", dimensao);
 
     if(conjuntoFormaBase(matrizVetores))
     {
-        printf("\nConclusao:\n");
         printf("O conjunto forma uma base de R%d.\n", dimensao);
         return;
     }
 
-    printf("\nConclusao:\n");
     printf("O conjunto NAO forma uma base de R%d.\n", dimensao);
 
-    if(quantidadeVetores != dimensao)
-    {
-        printf("\nMotivo:\n");
+    printf("\nMotivo:\n");
 
-        if(quantidadeVetores < dimensao)
-        {
-            printf("Ha menos vetores do que a dimensao do espaco.\n");
-        }
-        else
-        {
-            printf("Ha mais vetores do que a dimensao do espaco.\n");
-        }
+    if(quantidadeVetores < dimensao)
+    {
+        printf("Ha menos vetores do que a dimensao do espaco.\n");
+    }
+    else if(quantidadeVetores > dimensao)
+    {
+        printf("Ha mais vetores do que a dimensao do espaco.\n");
     }
 
     if(posto < dimensao)
@@ -539,17 +412,13 @@ static void analisarConjunto(const Matriz *matrizVetores,const double vetores[MA
         printf("Ha dependencia linear entre os vetores.\n");
     }
 
-    /*
-        Caso tenha vetores demais, mas eles gerem o espaco,
-        podemos indicar um subconjunto que forma base.
-    */
     if(posto == dimensao && quantidadeVetores > dimensao)
     {
         int selecionados[MAX_VARIAVEIS];
 
-        if(subconjuntoFormaBase(matrizVetores,dimensao,selecionados))
+        if(subconjuntoFormaBase(matrizVetores, dimensao, selecionados))
         {
-            printf("\nUm subconjunto que forma base é:\n");
+            printf("\nUm subconjunto que forma base e:\n");
 
             for(int i = 0; i < dimensao; i++)
             {
@@ -563,19 +432,13 @@ static void analisarConjunto(const Matriz *matrizVetores,const double vetores[MA
     }
     else
     {
-        completarParaBase(matrizVetores,vetores,quantidadeVetores,dimensao);
+        completarParaBase(matrizVetores, vetores, dimensao);
     }
 }
 
+/* Procura um subconjunto que forme base */
 
-/*
-==========================================================
-Procura um subconjunto com dimensao vetores que forme base.
-==========================================================
-*/
-
-static int subconjuntoFormaBase(const Matriz *matrizVetores,
-int dimensao,int selecionados[MAX_VARIAVEIS])
+static int subconjuntoFormaBase(const Matriz *matrizVetores, int dimensao, int selecionados[MAX_VARIAVEIS])
 {
     int quantidadeVetores = matrizVetores->colunas;
 
@@ -591,7 +454,7 @@ int dimensao,int selecionados[MAX_VARIAVEIS])
                 temp[0] = a;
                 temp[1] = b;
 
-                montarMatrizComSelecionados(matrizVetores,temp,2,&teste);
+                montarMatrizComSelecionados(matrizVetores, temp, 2, &teste);
 
                 if(calcularPosto(&teste) == 2)
                 {
@@ -603,42 +466,34 @@ int dimensao,int selecionados[MAX_VARIAVEIS])
         }
     }
 
-    if(dimensao == 3)
+    if(dimensao == 3 && quantidadeVetores >= 3)
     {
-        if(quantidadeVetores >= 3)
+        Matriz teste;
+        int temp[MAX_VARIAVEIS];
+
+        temp[0] = 0;
+        temp[1] = 1;
+        temp[2] = 2;
+
+        montarMatrizComSelecionados(matrizVetores, temp, 3, &teste);
+
+        if(calcularPosto(&teste) == 3)
         {
-            Matriz teste;
-            int temp[MAX_VARIAVEIS];
-
-            temp[0] = 0;
-            temp[1] = 1;
-            temp[2] = 2;
-
-            montarMatrizComSelecionados(matrizVetores,temp,3,&teste);
-
-            if(calcularPosto(&teste) == 3)
-            {
-                selecionados[0] = 0;
-                selecionados[1] = 1;
-                selecionados[2] = 2;
-                return 1;
-            }
+            selecionados[0] = 0;
+            selecionados[1] = 1;
+            selecionados[2] = 2;
+            return 1;
         }
     }
 
     return 0;
 }
 
+/* Monta matriz com colunas selecionadas */
 
-/*
-==========================================================
-Monta matriz usando apenas algumas colunas selecionadas.
-==========================================================
-*/
-
-static void montarMatrizComSelecionados(const Matriz *matrizOriginal,const int selecionados[MAX_VARIAVEIS],int quantidadeSelecionados,Matriz *resultado)
+static void montarMatrizComSelecionados(const Matriz *matrizOriginal, const int selecionados[MAX_VARIAVEIS], int quantidadeSelecionados, Matriz *resultado)
 {
-    inicializarMatriz(resultado,matrizOriginal->linhas,quantidadeSelecionados);
+    inicializarMatriz(resultado, matrizOriginal->linhas, quantidadeSelecionados);
 
     for(int colunaNova = 0; colunaNova < quantidadeSelecionados; colunaNova++)
     {
@@ -646,20 +501,14 @@ static void montarMatrizComSelecionados(const Matriz *matrizOriginal,const int s
 
         for(int linha = 0; linha < matrizOriginal->linhas; linha++)
         {
-            resultado->dados[linha][colunaNova] =
-                matrizOriginal->dados[linha][colunaOriginal];
+            resultado->dados[linha][colunaNova] = matrizOriginal->dados[linha][colunaOriginal];
         }
     }
 }
 
+/* Encontra um subconjunto independente */
 
-/*
-==========================================================
-Encontra um subconjunto independente dos vetores dados.
-==========================================================
-*/
-
-static void encontrarSubconjuntoIndependente(const Matriz *matrizVetores,int selecionados[MAX_VARIAVEIS],int *quantidadeSelecionados)
+static void encontrarSubconjuntoIndependente(const Matriz *matrizVetores, int selecionados[MAX_VARIAVEIS], int *quantidadeSelecionados)
 {
     Matriz teste;
     int temp[MAX_VARIAVEIS];
@@ -678,7 +527,7 @@ static void encontrarSubconjuntoIndependente(const Matriz *matrizVetores,int sel
     {
         temp[*quantidadeSelecionados] = coluna;
 
-        montarMatrizComSelecionados(matrizVetores,temp,*quantidadeSelecionados + 1,&teste);
+        montarMatrizComSelecionados(matrizVetores, temp, *quantidadeSelecionados + 1, &teste);
 
         int novoPosto = calcularPosto(&teste);
 
@@ -696,24 +545,9 @@ static void encontrarSubconjuntoIndependente(const Matriz *matrizVetores,int sel
     }
 }
 
+/* Completa para base usando vetores canonicos */
 
-/*
-==========================================================
-Tenta completar o conjunto para uma base usando vetores
-canonicos.
-
-Em R2:
-    e1 = (1,0)
-    e2 = (0,1)
-
-Em R3:
-    e1 = (1,0,0)
-    e2 = (0,1,0)
-    e3 = (0,0,1)
-==========================================================
-*/
-
-static void completarParaBase(const Matriz *matrizVetores,const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],int quantidadeVetores,int dimensao)
+static void completarParaBase(const Matriz *matrizVetores, const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS], int dimensao)
 {
     int selecionados[MAX_VARIAVEIS];
     int quantidadeSelecionados;
@@ -721,7 +555,7 @@ static void completarParaBase(const Matriz *matrizVetores,const double vetores[M
     double baseCompleta[MAX_VARIAVEIS][MAX_VARIAVEIS];
     int quantidadeBase = 0;
 
-    encontrarSubconjuntoIndependente(matrizVetores,selecionados,&quantidadeSelecionados);
+    encontrarSubconjuntoIndependente(matrizVetores, selecionados, &quantidadeSelecionados);
 
     for(int i = 0; i < quantidadeSelecionados; i++)
     {
@@ -735,9 +569,6 @@ static void completarParaBase(const Matriz *matrizVetores,const double vetores[M
         quantidadeBase++;
     }
 
-    /*
-        Agora tentamos adicionar vetores canonicos.
-    */
     for(int candidato = 0; candidato < dimensao; candidato++)
     {
         Matriz teste;
@@ -759,7 +590,7 @@ static void completarParaBase(const Matriz *matrizVetores,const double vetores[M
             }
         }
 
-        montarMatrizVetores(baseCompleta,quantidadeBase + 1,dimensao,&teste);
+        montarMatrizVetores(baseCompleta, quantidadeBase + 1, dimensao, &teste);
 
         if(calcularPosto(&teste) == quantidadeBase + 1)
         {
@@ -769,8 +600,7 @@ static void completarParaBase(const Matriz *matrizVetores,const double vetores[M
 
     if(quantidadeBase == dimensao)
     {
-        printf("\nUma forma de completar para uma base de R%d e:\n",
-               dimensao);
+        printf("\nUma forma de completar para uma base de R%d e:\n", dimensao);
 
         for(int i = 0; i < quantidadeBase; i++)
         {
@@ -785,15 +615,9 @@ static void completarParaBase(const Matriz *matrizVetores,const double vetores[M
     }
 }
 
+/* Imprime um vetor */
 
-/*
-==========================================================
-Imprime um vetor.
-==========================================================
-*/
-
-static void imprimirVetor(const double vetor[],
-                          int dimensao)
+static void imprimirVetor(const double vetor[], int dimensao)
 {
     printf("(");
 
@@ -810,37 +634,7 @@ static void imprimirVetor(const double vetor[],
     printf(")");
 }
 
-
-/*
-==========================================================
-Imprime conjunto de vetores.
-==========================================================
-*/
-
-static void imprimirConjunto(const double vetores[MAX_VARIAVEIS][MAX_VARIAVEIS],int quantidadeVetores,
-int dimensao)
-{
-    printf("{ ");
-
-    for(int i = 0; i < quantidadeVetores; i++)
-    {
-        imprimirVetor(vetores[i], dimensao);
-
-        if(i < quantidadeVetores - 1)
-        {
-            printf(", ");
-        }
-    }
-
-    printf(" }\n");
-}
-
-
-/*
-==========================================================
-Pausa.
-==========================================================
-*/
+/* Pausa a tela */
 
 static void pausarBase(void)
 {
